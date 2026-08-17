@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heat Exchanger Design Wizard — Shell & Tube Designer</title>
+  <meta name="description" content="Interactive 14-step shell-and-tube heat exchanger design tool based on Coulson & Richardson's Chemical Engineering methodology.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-container">
+
+  <!-- ===== TOP BAR ===== -->
+  <header class="top-bar">
+    <div style="display:flex;align-items:center;gap:16px">
+      <button class="mobile-menu-btn" id="menuBtn" aria-label="Toggle menu">☰</button>
+      <div class="top-bar__brand">
+        <div class="top-bar__icon">🔥</div>
+        <div>
+          <div class="top-bar__title">Heat Exchanger Design Wizard</div>
+          <div class="top-bar__subtitle">Shell &amp; Tube — Coulson &amp; Richardson Method</div>
+        </div>
+      </div>
+    </div>
+    <div class="live-metrics" id="liveMetrics">
+      <div class="metric-chip" id="metricQ"><span class="metric-chip__label">Q</span><span class="metric-chip__value">—</span></div>
+      <div class="metric-chip" id="metricA"><span class="metric-chip__label">A₀</span><span class="metric-chip__value">—</span></div>
+      <div class="metric-chip" id="metricNt"><span class="metric-chip__label">Nₜ</span><span class="metric-chip__value">—</span></div>
+      <div class="metric-chip" id="metricDs"><span class="metric-chip__label">Dₛ</span><span class="metric-chip__value">—</span></div>
+      <div class="metric-chip" id="metricUcalc"><span class="metric-chip__label">U_calc</span><span class="metric-chip__value">—</span></div>
+      <div class="metric-chip" id="metricDPt"><span class="metric-chip__label">ΔPₜ</span><span class="metric-chip__value">—</span></div>
+      <div class="metric-chip" id="metricDPs"><span class="metric-chip__label">ΔPₛ</span><span class="metric-chip__value">—</span></div>
+    </div>
+  </header>
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar"><div class="progress-bar__fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">0 / 14 steps</div>
+    </div>
+    <div class="sidebar__section-title">Design Steps</div>
+    <ul class="step-list" id="stepList">
+      <li class="step-item step-item--active" data-step="1"><span class="step-num">1</span><span class="step-label">Thermal Specification</span></li>
+      <li class="step-item" data-step="2"><span class="step-num">2</span><span class="step-label">Physical Properties</span></li>
+      <li class="step-item" data-step="3"><span class="step-num">3</span><span class="step-label">Assumed U₀</span></li>
+      <li class="step-item" data-step="4"><span class="step-num">4</span><span class="step-label">LMTD & Ft Correction</span></li>
+      <li class="step-item" data-step="5"><span class="step-num">5</span><span class="step-label">Heat Transfer Area</span></li>
+      <li class="step-item" data-step="6"><span class="step-num">6</span><span class="step-label">Tube Geometry</span></li>
+      <li class="step-item" data-step="7"><span class="step-num">7</span><span class="step-label">Tube Count</span></li>
+      <li class="step-item" data-step="8"><span class="step-num">8</span><span class="step-label">Bundle & Shell Diameter</span></li>
+      <li class="step-item" data-step="9"><span class="step-num">9</span><span class="step-label">Tube-Side Coefficient</span></li>
+      <li class="step-item" data-step="10"><span class="step-num">10</span><span class="step-label">Shell-Side Coefficient</span></li>
+      <li class="step-item" data-step="11"><span class="step-num">11</span><span class="step-label">Overall U & Verification</span></li>
+      <li class="step-item" data-step="12"><span class="step-num">12</span><span class="step-label">Pressure Drops</span></li>
+      <li class="step-item" data-step="13"><span class="step-num">13</span><span class="step-label">Cost Estimation</span></li>
+      <li class="step-item" data-step="14"><span class="step-num">14</span><span class="step-label">Final Design Summary</span></li>
+    </ul>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ======== STEP 1: Thermal Specification ======== -->
+    <section class="step-view step-view--active" id="step1">
+      <div class="step-header">
+        <div class="step-header__tag">Step 1 of 14</div>
+        <h1 class="step-header__title">Thermal Specification</h1>
+        <p class="step-header__desc">Define the process duty — temperatures and heat load. Choose which fluid goes on the tube side and which on the shell side. Flow rates will be calculated in Step 2 once Cp values are provided.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title"><span class="icon" style="background:hsla(175,60%,48%,0.15);color:var(--accent-primary)">⚙</span> Fluid Assignment</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Tube-Side Fluid Allocation</label>
+            <select class="form-select" id="tubeFluidType">
+              <option value="cold" selected>Cold Fluid</option>
+              <option value="hot">Hot Fluid</option>
+            </select>
+            <div class="form-hint">Shell-side will be automatically assigned the other fluid.</div>
+          </div>
+          <div class="form-group"></div>
+          <div class="form-group">
+            <label class="form-label">Tube-Side Fluid Name</label>
+            <input class="form-input" id="tubeSideFluid" type="text" placeholder="e.g. Cooling Water">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shell-Side Fluid Name</label>
+            <input class="form-input" id="shellSideFluid" type="text" placeholder="e.g. Methanol">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title"><span class="icon" style="background:hsla(30,80%,55%,0.15);color:var(--accent-warning)">🌡</span> Temperatures</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Hot Fluid Inlet Temperature <span class="unit">°C</span></label>
+            <input class="form-input" id="T1" type="number" step="any" placeholder="e.g. 95">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hot Fluid Outlet Temperature <span class="unit">°C</span></label>
+            <input class="form-input" id="T2" type="number" step="any" placeholder="e.g. 40">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cold Fluid Inlet Temperature <span class="unit">°C</span></label>
+            <input class="form-input" id="t1" type="number" step="any" placeholder="e.g. 25">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cold Fluid Outlet Temperature <span class="unit">°C</span></label>
+            <input class="form-input" id="t2" type="number" step="any" placeholder="e.g. 40">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title"><span class="icon" style="background:hsla(210,60%,50%,0.15);color:hsl(210,60%,60%)">🔥</span> Heat Load</div>
+        <div class="callout callout--info">💡 Enter the known heat duty (Q) for this exchanger. Mass flow rates will be automatically derived in Step 2 once specific heat capacities (Cp) are provided.</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Heat Load (Q) <span class="unit">kW</span></label>
+            <input class="form-input" id="Qinput" type="number" step="any" placeholder="e.g. 1560">
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 2</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 2: Physical Properties ======== -->
+    <section class="step-view" id="step2">
+      <div class="step-header">
+        <div class="step-header__tag">Step 2 of 14</div>
+        <h1 class="step-header__title">Physical Properties</h1>
+        <p class="step-header__desc">Enter the physical properties of both fluids at their mean bulk temperature. These are used for Reynolds, Prandtl, and heat transfer calculations.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title"><span class="icon" style="background:hsla(30,80%,55%,0.15);color:var(--accent-warning)">🔶</span> Hot Fluid <span id="hotFluidSideLabel" style="opacity:0.7;font-size:0.85em">(Shell Side)</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Density <span class="unit">kg/m³</span></label>
+            <input class="form-input" id="rhoHot" type="number" step="any" placeholder="e.g. 750">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Viscosity <span class="unit">Pa·s (N·s/m²)</span></label>
+            <input class="form-input" id="muHot" type="number" step="any" placeholder="e.g. 0.00034">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Thermal Conductivity <span class="unit">W/(m·K)</span></label>
+            <input class="form-input" id="kHot" type="number" step="any" placeholder="e.g. 0.19">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Specific Heat (Cp) <span class="unit">J/(kg·K)</span></label>
+            <input class="form-input" id="cpHotJ" type="number" step="any" placeholder="e.g. 2840">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title"><span class="icon" style="background:hsla(210,60%,50%,0.15);color:hsl(210,60%,60%)">🔷</span> Cold Fluid <span id="coldFluidSideLabel" style="opacity:0.7;font-size:0.85em">(Tube Side)</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Density <span class="unit">kg/m³</span></label>
+            <input class="form-input" id="rhoCold" type="number" step="any" placeholder="e.g. 995">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Viscosity <span class="unit">Pa·s</span></label>
+            <input class="form-input" id="muCold" type="number" step="any" placeholder="e.g. 0.0008">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Thermal Conductivity <span class="unit">W/(m·K)</span></label>
+            <input class="form-input" id="kCold" type="number" step="any" placeholder="e.g. 0.59">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Specific Heat (Cp) <span class="unit">J/(kg·K)</span></label>
+            <input class="form-input" id="cpColdJ" type="number" step="any" placeholder="e.g. 4180">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title"><span class="icon" style="background:hsla(145,50%,45%,0.15);color:var(--accent-success)">📊</span> Derived Flow Rates</div>
+        <div class="callout callout--tip">✅ Flow rates are computed from: m = Q / (Cp × ΔT). These update automatically as you fill in Cp above.</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Hot Fluid Mass Flow Rate <span class="unit">kg/s</span></label>
+            <div class="computed-value" id="mHotDisplay"><span class="eq-symbol">ṁ_hot =</span> —</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cold Fluid Mass Flow Rate <span class="unit">kg/s</span></label>
+            <div class="computed-value" id="mColdDisplay"><span class="eq-symbol">ṁ_cold =</span> —</div>
+          </div>
+        </div>
+        <div class="equation-display">ṁ_hot = Q / (Cp_hot × |T₁ − T₂|)&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;ṁ_cold = Q / (Cp_cold × |t₂ − t₁|)</div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 3</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 3: Assumed U₀ ======== -->
+    <section class="step-view" id="step3">
+      <div class="step-header">
+        <div class="step-header__tag">Step 3 of 14</div>
+        <h1 class="step-header__title">Assumed Overall Coefficient (U₀)</h1>
+        <p class="step-header__desc">Select an initial estimate for the overall heat transfer coefficient from the reference table, or enter a custom value.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">📊 Reference Values — Table 12.1 (Typical U ranges)</div>
+        <div class="preset-table-wrap">
+          <table class="preset-table" id="uPresetTable">
+            <thead><tr><th>Hot Fluid</th><th>Cold Fluid</th><th>U min (W/m²·K)</th><th>U max (W/m²·K)</th></tr></thead>
+            <tbody>
+              <tr data-umin="250" data-umax="750"><td>Light organics</td><td>Water</td><td>250</td><td>750</td></tr>
+              <tr data-umin="100" data-umax="300"><td>Medium organics</td><td>Water</td><td>100</td><td>300</td></tr>
+              <tr data-umin="60" data-umax="150"><td>Heavy organics</td><td>Water</td><td>60</td><td>150</td></tr>
+              <tr data-umin="500" data-umax="1200"><td>Water</td><td>Water</td><td>500</td><td>1200</td></tr>
+              <tr data-umin="250" data-umax="500"><td>Light organics</td><td>Light organics</td><td>250</td><td>500</td></tr>
+              <tr data-umin="100" data-umax="400"><td>Heavy organics</td><td>Heavy organics</td><td>100</td><td>400</td></tr>
+              <tr data-umin="600" data-umax="1200"><td>Condensing steam</td><td>Water</td><td>600</td><td>1200</td></tr>
+              <tr data-umin="250" data-umax="750"><td>Condensing organics</td><td>Water</td><td>250</td><td>750</td></tr>
+              <tr data-umin="150" data-umax="500"><td>Condensing steam</td><td>Light organics</td><td>150</td><td>500</td></tr>
+              <tr data-umin="20" data-umax="60"><td>Gas (high pressure)</td><td>Water</td><td>20</td><td>60</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout callout--tip">✅ Click a row above to auto-fill the U₀ value (average of range). You can override below.</div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">✏️ Assumed U₀</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Overall Heat Transfer Coefficient (U₀ assumed) <span class="unit">W/(m²·K)</span></label>
+            <input class="form-input" id="Uassumed" type="number" step="any" placeholder="e.g. 500">
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 4</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 4: LMTD & Ft ======== -->
+    <section class="step-view" id="step4">
+      <div class="step-header">
+        <div class="step-header__tag">Step 4 of 14</div>
+        <h1 class="step-header__title">LMTD &amp; Temperature Correction Factor</h1>
+        <p class="step-header__desc">Choose flow arrangement and number of passes. The Log Mean Temperature Difference (LMTD) and correction factor Fₜ are calculated automatically.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🔄 Flow Configuration</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Flow Arrangement</label>
+            <select class="form-select" id="flowArrangement">
+              <option value="counter">Counter-current</option>
+              <option value="co">Co-current (Parallel)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Number of Shell Passes</label>
+            <select class="form-select" id="shellPasses">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Number of Tube Passes</label>
+            <select class="form-select" id="tubePasses">
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="4">4</option>
+              <option value="6">6</option>
+              <option value="8">8</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">📐 Calculated Values</div>
+        <div class="equation-display">LMTD = (ΔT₁ − ΔT₂) / ln(ΔT₁ / ΔT₂)&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;ΔTₘ = Fₜ × LMTD</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">ΔT₁ <span class="unit">°C</span></label>
+            <div class="computed-value" id="dT1Display">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ΔT₂ <span class="unit">°C</span></label>
+            <div class="computed-value" id="dT2Display">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">LMTD <span class="unit">°C</span></label>
+            <div class="computed-value" id="lmtdDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">R (capacity ratio)</label>
+            <div class="computed-value" id="rDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">S (effectiveness)</label>
+            <div class="computed-value" id="sDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fₜ (correction factor)</label>
+            <div class="computed-value" id="ftDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Corrected ΔTₘ <span class="unit">°C</span></label>
+            <div class="computed-value" id="dtmDisplay">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 5</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 5: Heat Transfer Area ======== -->
+    <section class="step-view" id="step5">
+      <div class="step-header">
+        <div class="step-header__tag">Step 5 of 14</div>
+        <h1 class="step-header__title">Provisional Heat Transfer Area</h1>
+        <p class="step-header__desc">Calculate the required heat transfer area from Q, U₀ assumed, and ΔTₘ.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">📐 Area Calculation</div>
+        <div class="equation-display">A₀ = Q / (U₀ × ΔTₘ)</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Provisional Area (A₀) <span class="unit">m²</span></label>
+            <div class="computed-value" id="areaDisplay"><span class="eq-symbol">A₀ =</span> —</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 6</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 6: Tube Geometry ======== -->
+    <section class="step-view" id="step6">
+      <div class="step-header">
+        <div class="step-header__tag">Step 6 of 14</div>
+        <h1 class="step-header__title">Tube Geometry &amp; Material</h1>
+        <p class="step-header__desc">Select tube outer diameter, wall thickness, length, layout pattern, and tube pitch. Also choose the tube material for wall conductivity.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🔧 Tube Dimensions</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Tube Outer Diameter (d₀) <span class="unit">mm</span></label>
+            <input class="form-input" id="tubeOD" type="number" step="any" value="20" placeholder="e.g. 20">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tube Wall Thickness <span class="unit">mm</span></label>
+            <input class="form-input" id="tubeThk" type="number" step="any" value="2.0" placeholder="e.g. 2.0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tube Length (L) <span class="unit">m</span></label>
+            <input class="form-input" id="tubeLength" type="number" step="any" value="4.88" placeholder="e.g. 4.88">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tube Inner Diameter (dᵢ) <span class="unit">m</span></label>
+            <div class="computed-value" id="tubeIDDisplay">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">📐 Layout &amp; Pitch</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Tube Layout</label>
+            <select class="form-select" id="tubeLayout">
+              <option value="triangular" selected>Triangular (30°)</option>
+              <option value="square">Square (90°)</option>
+              <option value="rotated_square">Rotated Square (45°)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tube Pitch (pₜ) <span class="unit">mm</span></label>
+            <input class="form-input" id="tubePitch" type="number" step="any" placeholder="1.25 × d₀">
+            <div class="form-hint">Typical: 1.25 × d₀ (triangular) or 1.25 × d₀ (square). Auto-calculated if blank.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🧱 Tube Material</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Material</label>
+            <select class="form-select" id="tubeMaterial">
+              <option value="45">Carbon Steel (k ≈ 45 W/m·K)</option>
+              <option value="16">Stainless Steel 304 (k ≈ 16 W/m·K)</option>
+              <option value="111">Admiralty Brass (k ≈ 111 W/m·K)</option>
+              <option value="385">Copper (k ≈ 385 W/m·K)</option>
+              <option value="21">Monel 400 (k ≈ 21 W/m·K)</option>
+              <option value="9.5">Titanium (k ≈ 9.5 W/m·K)</option>
+              <option value="17">Inconel 600 (k ≈ 17 W/m·K)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Custom Wall Conductivity (kw) <span class="unit">W/(m·K)</span></label>
+            <input class="form-input" id="kwCustom" type="number" step="any" placeholder="Override from dropdown">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">📏 Space &amp; Length Optimization Guide</div>
+        <p class="form-hint" style="margin-bottom:12px">Compare how different tube lengths affect the number of tubes, shell diameter, and length-wise footprint. <strong>Click any row</strong> to select that length.</p>
+        <div class="preset-table-wrap">
+          <table class="preset-table" id="lengthOptTable">
+            <thead>
+              <tr>
+                <th>Length (L)</th>
+                <th>Required Area (A₀)</th>
+                <th>Est. Tube Count (Nₜ)</th>
+                <th>Est. Shell Ø (Dₛ)</th>
+                <th>L / Dₛ Ratio</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Dynamic rows generated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 7</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 7: Tube Count ======== -->
+    <section class="step-view" id="step7">
+      <div class="step-header">
+        <div class="step-header__tag">Step 7 of 14</div>
+        <h1 class="step-header__title">Number of Tubes</h1>
+        <p class="step-header__desc">Calculate the number of tubes from the area, tube OD, and tube length.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🔢 Tube Count</div>
+        <div class="equation-display">Nₜ = A₀ / (π × d₀ × L)</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Area per Tube (π × d₀ × L) <span class="unit">m²</span></label>
+            <div class="computed-value" id="areaPerTubeDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nₜ (exact, before rounding)</label>
+            <div class="computed-value" id="tubeCountRawDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Number of Tubes (Nₜ, rounded up)</label>
+            <div class="computed-value" id="tubeCountDisplay"><span class="eq-symbol">Nₜ =</span> —</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Override Tube Count (optional)</label>
+            <input class="form-input" id="tubeCountOverride" type="number" step="1" placeholder="Leave blank for auto">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">📐 Tube Cross-Section (Verification)</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Inner Tube CSA (π/4 × dᵢ²) <span class="unit">m²</span></label>
+            <div class="computed-value" id="innerCSADisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tubes per Pass (Nₜ / passes)</label>
+            <div class="computed-value" id="tubesPerPassStep7Display">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total Flow Area <span class="unit">m²</span></label>
+            <div class="computed-value" id="totalFlowAreaDisplay">—</div>
+          </div>
+        </div>
+        <div class="callout callout--info">💡 Verify: Inner CSA should match π/4 × dᵢ². Total Flow Area = (Nₜ/passes) × Inner CSA. Compare with spreadsheet values to ensure dᵢ is correct.</div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 8</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 8: Bundle & Shell Diameter ======== -->
+    <section class="step-view" id="step8">
+      <div class="step-header">
+        <div class="step-header__tag">Step 8 of 14</div>
+        <h1 class="step-header__title">Bundle Diameter &amp; Shell Diameter</h1>
+        <p class="step-header__desc">Estimate the tube bundle diameter using correlations (K₁, n₁) and determine the shell internal diameter using clearance data.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">📐 Bundle Diameter (Db)</div>
+        <div class="equation-display">Db = d₀ × (Nₜ / K₁)^(1/n₁)</div>
+        <div class="callout callout--info">💡 K₁ and n₁ constants depend on <strong>tube layout</strong> and <strong>number of tube passes</strong>. Adjust below or go back to Step 4/6 to change.</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Number of Tube Passes</label>
+            <select class="form-select" id="tubePassesStep8">
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="4">4</option>
+              <option value="6">6</option>
+              <option value="8">8</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tube Layout</label>
+            <div class="computed-value" id="layoutDisplayStep8">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">K₁ constant</label>
+            <div class="computed-value" id="k1Display">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">n₁ constant</label>
+            <div class="computed-value" id="n1Display">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bundle Diameter (Db) <span class="unit">mm</span></label>
+            <div class="computed-value" id="dbDisplay"><span class="eq-symbol">Db =</span> —</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🛢️ Shell Diameter (Ds)</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Shell Type</label>
+            <select class="form-select" id="shellType">
+              <option value="fixed" selected>Fixed Tube Sheet</option>
+              <option value="floating">Floating Head (Pull-Through)</option>
+              <option value="split">Split Ring Floating Head</option>
+              <option value="utube">U-Tube</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bundle-Shell Clearance <span class="unit">mm</span></label>
+            <div class="computed-value" id="clearanceDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shell Internal Diameter (Ds) <span class="unit">mm</span></label>
+            <div class="computed-value" id="dsDisplay"><span class="eq-symbol">Ds =</span> —</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Override Shell Diameter <span class="unit">mm</span></label>
+            <input class="form-input" id="dsOverride" type="number" step="any" placeholder="Leave blank for auto">
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 9</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 9: Tube-Side Coefficient ======== -->
+    <section class="step-view" id="step9">
+      <div class="step-header">
+        <div class="step-header__tag">Step 9 of 14</div>
+        <h1 class="step-header__title">Tube-Side Heat Transfer Coefficient</h1>
+        <p class="step-header__desc">Calculate the tube-side velocity, Reynolds number, Prandtl number, and heat transfer coefficient (hᵢ).</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🔬 Tube-Side Calculations</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Tubes per Pass</label>
+            <div class="computed-value" id="tubesPerPassDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tube Cross-Section Area <span class="unit">m²</span></label>
+            <div class="computed-value" id="tubeCSADisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tube-Side Velocity (uₜ) <span class="unit">m/s</span></label>
+            <div class="computed-value" id="utDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Reynolds Number (Re)</label>
+            <div class="computed-value" id="reTubeDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prandtl Number (Pr)</label>
+            <div class="computed-value" id="prTubeDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nusselt Number (Nu)</label>
+            <div class="computed-value" id="nuTubeDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tube-Side Coefficient (hᵢ) <span class="unit">W/(m²·K)</span></label>
+            <div class="computed-value" id="hiDisplay"><span class="eq-symbol">hᵢ =</span> —</div>
+          </div>
+        </div>
+        <div class="callout callout--info">💡 Using jH factor method (C&amp;R Fig. 12.23): Nu = jH × Re × Pr<sup>1/3</sup>. For turbulent flow (Re &gt; 10,000), jH ≈ 0.027 × Re<sup>−0.2</sup>. For laminar flow (Re &lt; 2100), Nu = 3.66.</div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 10</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 10: Shell-Side Coefficient ======== -->
+    <section class="step-view" id="step10">
+      <div class="step-header">
+        <div class="step-header__tag">Step 10 of 14</div>
+        <h1 class="step-header__title">Shell-Side Heat Transfer Coefficient</h1>
+        <p class="step-header__desc">Determine baffle spacing, shell-side velocity, and the shell-side heat transfer coefficient (h₀) using Kern's method.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🔩 Baffle Configuration</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Baffle Type</label>
+            <select class="form-select" id="baffleType">
+              <option value="single_seg" selected>Single Segmental (25% cut)</option>
+              <option value="double_seg">Double Segmental</option>
+              <option value="disc_donut">Disc and Doughnut</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Baffle Cut <span class="unit">%</span></label>
+            <input class="form-input" id="baffleCut" type="number" step="any" value="25" placeholder="25">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Baffle Spacing (lB) <span class="unit">mm</span></label>
+            <input class="form-input" id="baffleSpacing" type="number" step="any" placeholder="Auto: 0.4 × Ds">
+            <div class="form-hint">Typical range: 0.2 × Ds to 1.0 × Ds</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🔬 Shell-Side Calculations</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Cross-Flow Area (Aₛ) <span class="unit">m²</span></label>
+            <div class="computed-value" id="asDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shell-Side Velocity (uₛ) <span class="unit">m/s</span></label>
+            <div class="computed-value" id="usDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Equivalent Diameter (dₑ) <span class="unit">mm</span></label>
+            <div class="computed-value" id="deDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shell Reynolds Number (Re)</label>
+            <div class="computed-value" id="reShellDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shell Prandtl Number (Pr)</label>
+            <div class="computed-value" id="prShellDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shell-Side jh Factor</label>
+            <div class="computed-value" id="jhDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shell-Side Coefficient (h₀) <span class="unit">W/(m²·K)</span></label>
+            <div class="computed-value" id="hoDisplay"><span class="eq-symbol">h₀ =</span> —</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 11</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 11: Overall U & Verification ======== -->
+    <section class="step-view" id="step11">
+      <div class="step-header">
+        <div class="step-header__tag">Step 11 of 14</div>
+        <h1 class="step-header__title">Overall Coefficient &amp; Verification</h1>
+        <p class="step-header__desc">Calculate the overall heat transfer coefficient (U_calc) including fouling factors, and compare with the assumed U₀.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🧹 Fouling Factors</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Tube-Side Fouling Factor (Rdᵢ) <span class="unit">m²·K/W</span></label>
+            <input class="form-input" id="Rdi" type="number" step="any" value="0.0003" placeholder="e.g. 0.0003">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shell-Side Fouling Factor (Rd₀) <span class="unit">m²·K/W</span></label>
+            <input class="form-input" id="Rdo" type="number" step="any" value="0.0003" placeholder="e.g. 0.0003">
+          </div>
+        </div>
+        <div class="preset-table-wrap">
+          <table class="preset-table">
+            <thead><tr><th>Fluid</th><th>Fouling Factor (m²·K/W)</th></tr></thead>
+            <tbody>
+              <tr><td>River water</td><td>0.0003 – 0.001</td></tr>
+              <tr><td>Sea water</td><td>0.0001 – 0.0003</td></tr>
+              <tr><td>Treated cooling water</td><td>0.0001 – 0.0002</td></tr>
+              <tr><td>Organic liquids (clean)</td><td>0.0001</td></tr>
+              <tr><td>Light hydrocarbons</td><td>0.0002</td></tr>
+              <tr><td>Heavy hydrocarbons</td><td>0.0003 – 0.0005</td></tr>
+              <tr><td>Steam (clean)</td><td>0.0001</td></tr>
+              <tr><td>Exhaust gases</td><td>0.001 – 0.002</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🧩 Individual Resistance Terms (1/U₀ components)</div>
+        <div class="equation-display" style="margin-bottom: 1rem;">1/U₀ = 1/h₀ + Rd₀ + (d₀×ln(d₀/dᵢ))/(2kw) + (d₀/dᵢ)×Rdᵢ + (d₀/dᵢ)×(1/hᵢ)</div>
+        <div class="preset-table-wrap">
+          <table class="preset-table" style="margin-bottom: 0;">
+            <thead><tr><th>Term</th><th>Expression</th><th>Value (m²·K/W)</th></tr></thead>
+            <tbody>
+              <tr><td><strong>R₁</strong> (Shell-side Film)</td><td>1/h₀</td><td id="resR1">—</td></tr>
+              <tr><td><strong>R₂</strong> (Shell-side Fouling)</td><td>Rd₀</td><td id="resR2">—</td></tr>
+              <tr><td><strong>R₃</strong> (Tube Wall)</td><td>(d₀×ln(d₀/dᵢ))/(2k_w)</td><td id="resR3">—</td></tr>
+              <tr><td><strong>R₄</strong> (Tube-side Fouling)</td><td>(d₀/dᵢ)×Rdᵢ</td><td id="resR4">—</td></tr>
+              <tr><td><strong>R₅</strong> (Tube-side Film)</td><td>(d₀/dᵢ)×(1/hᵢ)</td><td id="resR5">—</td></tr>
+              <tr style="background: hsla(210,60%,50%,0.05); font-weight: bold;">
+                <td colspan="2" style="text-align: right; padding-right: 1rem;">Total Resistance (1/U₀)</td><td id="resTotal">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">📊 Overall U Calculation</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Calculated U₀ <span class="unit">W/(m²·K)</span></label>
+            <div class="computed-value" id="ucalcDisplay"><span class="eq-symbol">U_calc =</span> —</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Assumed U₀ <span class="unit">W/(m²·K)</span></label>
+            <div class="computed-value" id="uassDisplay"><span class="eq-symbol">U_ass =</span> —</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Deviation</label>
+            <div class="computed-value" id="uDeviationDisplay">—</div>
+          </div>
+        </div>
+        <div id="verificationResult"></div>
+        <div class="callout callout--warning">⚠️ If U_calc differs from U_assumed by more than ±30%, return to Step 3 and revise U₀ or adjust geometry in Step 6.</div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-danger" onclick="HX.goToStep(3)">🔄 Revise U₀ (→ Step 3)</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 12</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 12: Pressure Drops ======== -->
+    <section class="step-view" id="step12">
+      <div class="step-header">
+        <div class="step-header__tag">Step 12 of 14</div>
+        <h1 class="step-header__title">Pressure Drop Estimation</h1>
+        <p class="step-header__desc">Estimate tube-side and shell-side pressure drops and verify they are within acceptable limits.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🔵 Tube-Side Pressure Drop (ΔPₜ)</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Tube Friction Factor (jf)</label>
+            <div class="computed-value" id="jfTubeDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tube-Side ΔP <span class="unit">kPa</span></label>
+            <div class="computed-value" id="dpTubeDisplay"><span class="eq-symbol">ΔPₜ =</span> —</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🟠 Shell-Side Pressure Drop (ΔPₛ)</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Shell Friction Factor (jf)</label>
+            <div class="computed-value" id="jfShellDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Number of Baffles (Nb)</label>
+            <div class="computed-value" id="nbDisplay">—</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shell-Side ΔP <span class="unit">kPa</span></label>
+            <div class="computed-value" id="dpShellDisplay"><span class="eq-symbol">ΔPₛ =</span> —</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">✅ Pressure Drop Limits</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Max Allowable Tube ΔP <span class="unit">kPa</span></label>
+            <input class="form-input" id="maxDPtube" type="number" step="any" value="70" placeholder="70">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max Allowable Shell ΔP <span class="unit">kPa</span></label>
+            <input class="form-input" id="maxDPshell" type="number" step="any" value="70" placeholder="70">
+          </div>
+        </div>
+        <div id="dpVerificationResult"></div>
+        <div class="callout callout--info">💡 Typical allowable ΔP: 35–70 kPa for liquids; up to 100 kPa for high-pressure gas. If ΔP is too high, increase baffle spacing or change tube passes.</div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-danger" onclick="HX.goToStep(10)">🔄 Adjust Baffles (→ Step 10)</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 13</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 13: Cost Estimation ======== -->
+    <section class="step-view" id="step13">
+      <div class="step-header">
+        <div class="step-header__tag">Step 13 of 14</div>
+        <h1 class="step-header__title">Cost Estimation</h1>
+        <p class="step-header__desc">Estimate the purchased equipment cost using correlations based on heat transfer area and material factors.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">💰 Cost Parameters</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Base Cost per m² (Carbon Steel) <span class="unit">USD/m²</span></label>
+            <input class="form-input" id="baseCostPerM2" type="number" step="any" value="800" placeholder="800">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Material Cost Factor (Fm)</label>
+            <input class="form-input" id="materialFactor" type="number" step="any" value="1.0" placeholder="1.0 for CS, 2.5 for SS316">
+            <div class="form-hint">CS=1.0, SS304=1.7, SS316=2.5, Titanium=6.0, Copper=1.3</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pressure Factor (Fp)</label>
+            <input class="form-input" id="pressureFactor" type="number" step="any" value="1.0" placeholder="1.0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Installation Factor (multiplier)</label>
+            <input class="form-input" id="installFactor" type="number" step="any" value="3.5" placeholder="3.5">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">📊 Estimated Cost</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Purchased Equipment Cost <span class="unit">USD</span></label>
+            <div class="computed-value" id="purchaseCostDisplay"><span class="eq-symbol">C_p =</span> —</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Installed Cost <span class="unit">USD</span></label>
+            <div class="computed-value" id="installedCostDisplay"><span class="eq-symbol">C_inst =</span> —</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="HX.nextStep()">Continue → Step 14</button>
+      </div>
+    </section>
+
+    <!-- ======== STEP 14: Final Design Summary ======== -->
+    <section class="step-view" id="step14">
+      <div class="step-header">
+        <div class="step-header__tag">Step 14 of 14</div>
+        <h1 class="step-header__title">Final Design Summary</h1>
+        <p class="step-header__desc">Review the complete heat exchanger design. All key parameters are summarized below. Export or print this report.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__title">🏆 Design Results</div>
+        <div class="results-grid" id="resultsGrid">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__title">📋 Detailed Specification Sheet</div>
+        <div class="preset-table-wrap">
+          <table class="preset-table" id="specSheet">
+            <thead><tr><th>Parameter</th><th>Value</th><th>Unit</th></tr></thead>
+            <tbody id="specSheetBody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="HX.prevStep()">← Back</button>
+        <button class="btn btn-danger" onclick="HX.goToStep(1)">🔄 Start Over</button>
+        <button class="btn btn-primary" onclick="window.print()">🖨️ Print / Export PDF</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
